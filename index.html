@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ManTube - Music & Video Downloader</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <div id="app">
+    <!-- TOP BAR (hanya untuk tab Beranda) -->
+    <header id="topbar" class="topbar">
+      <div class="topbar-left">
+        <img src="assets/logo.svg" alt="ManTube" class="logo-img" />
+        <span class="logo-text">ManTube</span>
+      </div>
+      <div class="topbar-search">
+        <input type="text" id="searchInput" placeholder="Cari atau tempel tautan di sini" />
+        <button class="search-btn" onclick="doSearch()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+      <div class="topbar-right">
+        <div class="yt-badge">
+          <svg viewBox="0 0 24 24" fill="#fff" width="14" height="14"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE BERANDA -->
+    <div id="page-beranda" class="page active">
+      <div class="feed" id="videoFeed">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Cari video atau tempel URL YouTube di atas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE MUSIK -->
+    <div id="page-musik" class="page">
+      <div class="musik-page-scroll">
+
+        <!-- Header -->
+        <div class="musik-topbar">
+          <span class="musik-topbar-title">Musik</span>
+          <button class="musik-refresh-btn" onclick="loadMusicPage()" title="Refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Section: Sedang Trending di Shorts -->
+        <section class="musik-section">
+          <h2 class="musik-section-title">Sedang Trending di Shorts</h2>
+          <div id="musikTrendingShorts" class="musik-shorts-list">
+            <div class="musik-skeleton-list"></div>
+          </div>
+        </section>
+
+        <!-- Section: Yang Baru & Sedang Trend -->
+        <section class="musik-section">
+          <h2 class="musik-section-title">Yang Baru &amp; Sedang Trend 🔥</h2>
+          <div id="musikTrendingNew" class="musik-hscroll">
+            <div class="musik-skeleton-cards"></div>
+          </div>
+        </section>
+
+        <!-- Section: Hits Indonesia -->
+        <section class="musik-section">
+          <h2 class="musik-section-title">Hits Indonesia.</h2>
+          <div id="musikHitsIndo" class="musik-hscroll">
+            <div class="musik-skeleton-cards"></div>
+          </div>
+        </section>
+
+        <!-- Section: Rilis Baru -->
+        <section class="musik-section">
+          <h2 class="musik-section-title">Rilis baru</h2>
+          <div id="musikRilisBaru" class="musik-hscroll">
+            <div class="musik-skeleton-cards"></div>
+          </div>
+        </section>
+
+        <!-- Section: Favorit Selamanya -->
+        <section class="musik-section">
+          <h2 class="musik-section-title">Favorit selamanya! 🤎</h2>
+          <div id="musikFavorit" class="musik-hscroll">
+            <div class="musik-skeleton-cards"></div>
+          </div>
+        </section>
+
+        <div style="height:4px;"></div>
+      </div>
+    </div>
+
+    <!-- PAGE FILE SAYA -->
+    <div id="page-files" class="page">
+      <div class="page-header">
+        <h1 class="page-title">File Saya</h1>
+        <button class="trash-btn" onclick="confirmDeleteAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+      <div class="files-content">
+        <div class="files-subtitle">Sudah Diunduh <span id="fileCount" class="count-badge">0</span></div>
+        <div id="fileList" class="file-list">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" width="64" height="64"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <p>Belum ada file yang diunduh</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE PENGATURAN -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Pengaturan</h1>
+      </div>
+      <div class="settings-content">
+        <div class="settings-list">
+          <div class="settings-item" onclick="showToast('Fitur login segera hadir')">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span data-i18n="settings_login">Masuk</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showLanguageModal()">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span data-i18n="settings_language">Bahasa</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showToast('Pengaturan Pemutaran')">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span data-i18n="settings_playback">Pengaturan Pemutaran</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span data-i18n="settings_quick_search">Pencarian Cepat</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="quickSearchToggle" checked onchange="toggleQuickSearch(this)" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-group-label">Tentang Kami</div>
+        <div class="settings-list">
+          <div class="settings-item" onclick="openLink('https://instagram.com')">
+            <div class="settings-item-left">
+              <div class="social-icon ig">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="14" height="14"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg>
+              </div>
+              <span data-i18n="settings_follow_ig">Follow us on IG</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="shareApp()">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M21.5 2.5l-10 10M21.5 2.5H15M21.5 2.5V9"/><path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></svg>
+              <span data-i18n="settings_share">Bagikan ManTube</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showToast('Kirim saran ke: saran@mantube.app')">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span data-i18n="settings_suggest">Saran</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showToast('Versi 1.0.0 - Sudah terbaru')">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 12 14 14"/></svg>
+              <span data-i18n="settings_update">Memperbarui</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showPrivacy()">
+            <div class="settings-item-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span data-i18n="settings_privacy">Kebijakan Pribadi</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+        <div class="app-version">ManTube v1.0.0</div>
+      </div>
+    </div>
+
+    <!-- PAGE VIDEO PLAYER -->
+    <div id="page-player" class="page">
+      <!-- Sticky embed area + back button -->
+      <div style="position:relative;flex-shrink:0;">
+        <div id="playerEmbed" class="player-embed"></div>
+        <!-- Tombol back pojok kiri atas -->
+        <button class="player-back-fab" onclick="closePlayer()" title="Kembali ke Beranda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" width="18" height="18">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable content below player -->
+      <div class="player-content">
+
+        <!-- Judul -->
+        <div class="player-info-block">
+          <h1 id="playerTitle" class="player-title"></h1>
+
+          <!-- Stats row: views · date · trending badge -->
+          <div id="playerStatRow" class="player-stat-row"></div>
+
+          <!-- Channel row -->
+          <div class="player-channel-row">
+            <div class="player-channel-left">
+              <div id="playerChannelAvatar" class="player-channel-avatar"></div>
+              <div class="player-channel-info">
+                <div class="player-channel-name-wrap">
+                  <span id="playerChannelName" class="player-channel-name"></span>
+                  <span id="playerVerified" class="player-verified" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="var(--red)" width="14" height="14"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+                  </span>
+                </div>
+                <div id="playerSubs" class="player-subs"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action buttons row: Share · Unduh -->
+          <div class="player-action-row">
+            <button class="player-pill-btn" onclick="shareCurrentVideo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Share
+            </button>
+            <button class="player-pill-btn download-pill" onclick="downloadCurrentVideo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Unduh
+            </button>
+            <button class="player-pill-btn" onclick="refreshPlayer()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="player-divider"></div>
+
+        <!-- Video Terkait -->
+        <div class="player-related">
+          <div id="relatedVideos" class="related-list"></div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Nav di player (sama persis dengan nav utama) -->
+      <nav class="bottom-nav player-bottom-nav">
+        <button class="nav-item" onclick="closePlayer();switchTab('beranda')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Beranda</span>
+        </button>
+        <button class="nav-item" onclick="closePlayer();switchTab('musik')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span>Musik</span>
+        </button>
+        <button class="nav-item" onclick="closePlayer();switchTab('files')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>File Saya</span>
+        </button>
+        <button class="nav-item" onclick="closePlayer();switchTab('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Pengaturan</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- MINI PLAYER — muncul di atas bottom nav saat video diputar -->
+    <div id="miniPlayer" class="mini-player" style="display:none;" onclick="expandPlayer()">
+      <!-- Progress bar tipis di atas -->
+      <div class="mini-progress-wrap">
+        <div id="miniProgressBar" class="mini-progress-bar" style="width:0%"></div>
+      </div>
+      <!-- Konten -->
+      <div class="mini-player-inner">
+        <div class="mini-thumb-wrap">
+          <img id="miniThumb" src="" alt="" onerror="this.src='assets/thumb-placeholder.svg'" />
+        </div>
+        <div class="mini-info">
+          <div id="miniTitle" class="mini-title"></div>
+          <div id="miniChannel" class="mini-channel"></div>
+        </div>
+        <div class="mini-controls" onclick="event.stopPropagation()">
+          <button class="mini-btn" id="miniPlayPause" onclick="toggleMiniPlay(event)" title="Pause/Play">
+            <svg id="miniPauseIcon" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+              <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          </button>
+          <button class="mini-btn" onclick="miniNext(event)" title="Berikutnya">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+              <polygon points="5 4 15 12 5 20 5 4"/><rect x="17" y="4" width="2" height="16"/>
+            </svg>
+          </button>
+          <button class="mini-btn mini-close" onclick="closeMiniPlayer(event)" title="Tutup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="beranda" onclick="switchTab('beranda')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Beranda</span>
+      </button>
+      <button class="nav-item" data-tab="musik" onclick="switchTab('musik')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>Musik</span>
+      </button>
+      <button class="nav-item" data-tab="files" onclick="switchTab('files')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>File Saya</span>
+      </button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Pengaturan</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODAL DOWNLOAD OPTIONS — Detail dengan pilihan format -->
+  <div id="downloadModal" class="modal-overlay" onclick="closeModal()">
+    <div class="modal-box-new" onclick="event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="mdl-header">
+        <span class="mdl-title">Unduh sebagai</span>
+        <button class="mdl-close-btn" onclick="closeModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Video info -->
+      <div class="mdl-video-info">
+        <div class="mdl-thumb-wrap">
+          <img id="modalThumb2" src="" alt="" onerror="this.src='assets/thumb-placeholder.svg'" />
+        </div>
+        <div class="mdl-video-meta">
+          <div id="modalVideoTitle2" class="mdl-video-title"></div>
+          <div id="modalYtLink" class="mdl-yt-link">
+            <svg viewBox="0 0 24 24" fill="#e8001d" width="14" height="14"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.75 15.5V8.5l6.25 3.5-6.25 3.5z"/></svg>
+            <span id="modalYtLinkText"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Path penyimpanan -->
+      <div class="mdl-path">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Path: /storage/emulated/0/Download/ManTube</span>
+      </div>
+
+      <!-- Format list -->
+      <div id="modalFormatBody" class="mdl-format-body">
+        <div class="mdl-loading">
+          <div class="spinner"></div>
+          <span>Memuat format tersedia...</span>
+        </div>
+      </div>
+
+      <!-- Tombol Unduh -->
+      <div class="mdl-footer">
+        <button class="mdl-download-btn" id="modalDownloadBtn" onclick="startDownloadSelected()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Unduh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- PROGRESS OVERLAY -->
+  <div id="progressOverlay" class="progress-overlay" style="display:none">
+    <div class="progress-box">
+      <div class="progress-title">Mengunduh...</div>
+      <div id="progressVideoTitle" class="progress-video-title"></div>
+      <div class="progress-bar-wrap">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <div id="progressMsg" style="font-size:12px;color:#888;">Memproses...</div>
+        <div id="progressPercent" class="progress-percent">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

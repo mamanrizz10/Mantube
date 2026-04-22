@@ -1,0 +1,17 @@
+{
+  "name": "muka-app",
+  "version": "1.0.0",
+  "description": "ManTube - Music & Video Downloader",
+  "scripts": {
+    "start": "node server.js",
+    "dev":   "node server.js",
+    "build": "node server.js"
+  },
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "@distube/ytsr": "^2.0.4",
+    "play-dl": "^1.9.7",
+    "ytdl-core": "^4.11.5",
+    "ytsr": "^3.8.4"
+  }
+}

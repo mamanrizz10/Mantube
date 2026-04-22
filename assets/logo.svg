@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+  <!-- Hexagon background -->
+  <polygon points="20,2 35,10.5 35,29.5 20,38 5,29.5 5,10.5" fill="#1a6b1a"/>
+  <!-- White circle -->
+  <circle cx="20" cy="20" r="11" fill="white"/>
+  <!-- Green play triangle -->
+  <polygon points="16,14 16,26 28,20" fill="#1a6b1a"/>
+</svg>
