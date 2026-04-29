@@ -1,5 +1,16 @@
 // ===== MANTUBE APP =====
-const API = 'http://localhost:8080/api';
+// API URL: otomatis deteksi local vs production
+const API = (() => {
+  const host = window.location.hostname;
+  // Jika di localhost → pakai server lokal
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8080/api';
+  }
+  // Jika di production → ganti dengan URL backend kamu
+  // Contoh Railway: https://mantube-backend.up.railway.app/api
+  // Contoh Render:  https://mantube-backend.onrender.com/api
+  return window.BACKEND_URL || 'http://localhost:8080/api';
+})();
 
 // ===== STATE =====
 let currentTab = 'beranda';

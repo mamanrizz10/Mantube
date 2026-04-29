@@ -574,8 +574,11 @@ function handleServeFile(res, filename) {
   fs.createReadStream(filePath).pipe(res);
 }
 
-// ===== STREAM DOWNLOAD — pakai yt-dlp.exe, langsung pipe ke browser =====
-const YTDLP_PATH = path.join(BASE_DIR, 'yt-dlp.exe');
+// ===== STREAM DOWNLOAD — pakai yt-dlp, langsung pipe ke browser =====
+// Deteksi platform: Windows pakai .exe, Linux/Mac pakai binary
+const IS_WIN    = process.platform === 'win32';
+const YTDLP_BIN = IS_WIN ? 'yt-dlp.exe' : 'yt-dlp';
+const YTDLP_PATH = path.join(BASE_DIR, YTDLP_BIN);
 
 async function handleStreamDownload(res, videoId, format, itag) {
   if (!videoId) return sendError(res, 'ID kosong', 400);
@@ -716,7 +719,29 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+// ===== AUTO-DOWNLOAD yt-dlp jika belum ada (untuk Linux/Vercel) =====
+async function ensureYtdlp() {
+  if (fs.existsSync(YTDLP_PATH)) return; // sudah ada
+  if (IS_WIN) {
+    console.log('⚠️  yt-dlp.exe tidak ditemukan. Download dari https://github.com/yt-dlp/yt-dlp/releases');
+    return;
+  }
+  // Linux: download yt-dlp binary
+  console.log('📥 Mengunduh yt-dlp untuk Linux...');
+  try {
+    const { execSync } = require('child_process');
+    execSync(
+      `curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "${YTDLP_PATH}" && chmod +x "${YTDLP_PATH}"`,
+      { stdio: 'inherit', timeout: 60000 }
+    );
+    console.log('✅ yt-dlp berhasil diunduh');
+  } catch (e) {
+    console.error('❌ Gagal download yt-dlp:', e.message);
+  }
+}
+
+server.listen(PORT, async () => {
+  await ensureYtdlp();
   console.log('');
   console.log('  ✅ ManTube berjalan!');
   console.log(`  🌐 http://localhost:${PORT}`);

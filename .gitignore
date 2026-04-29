@@ -1,1 +1,27 @@
-node_modules
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Binary tools (jangan di-commit, terlalu besar)
+yt-dlp.exe
+yt-dlp
+ffmpeg.exe
+ffmpeg
+
+# Downloaded files
+downloads/
+*.m4a
+*.mp4
+*.mp3
+*.webm
+
+# Dump files dari ytsr
+dumps/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.log
