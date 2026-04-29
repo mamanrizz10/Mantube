@@ -2,15 +2,43 @@
 // API URL: otomatis deteksi local vs production
 const API = (() => {
   const host = window.location.hostname;
-  // Jika di localhost → pakai server lokal
+  // Localhost → server lokal
   if (host === 'localhost' || host === '127.0.0.1') {
     return 'http://localhost:8080/api';
   }
-  // Jika di production → ganti dengan URL backend kamu
-  // Contoh Railway: https://mantube-backend.up.railway.app/api
-  // Contoh Render:  https://mantube-backend.onrender.com/api
-  return window.BACKEND_URL || 'http://localhost:8080/api';
+  // Production: cek apakah ada BACKEND_URL yang di-set
+  if (window.BACKEND_URL) return window.BACKEND_URL;
+  // Jika deploy di Vercel/Netlify tanpa backend terpisah:
+  // Coba pakai origin yang sama (jika backend dan frontend satu server)
+  return window.location.origin + '/api';
 })();
+
+// Cek apakah backend tersedia
+let _backendAvailable = null;
+async function checkBackend() {
+  if (_backendAvailable !== null) return _backendAvailable;
+  try {
+    const r = await fetch(API.replace('/api', '') + '/', { signal: AbortSignal.timeout(3000) });
+    _backendAvailable = r.ok || r.status < 500;
+  } catch {
+    _backendAvailable = false;
+  }
+  return _backendAvailable;
+}
+
+// Wrapper fetch yang tidak hang selamanya
+async function apiFetch(url, opts = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000); // 10 detik timeout
+  try {
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
 
 // ===== STATE =====
 let currentTab = 'beranda';
@@ -277,7 +305,7 @@ async function doSearch(query, filter) {
       ? q
       : q + MUSIC_SUFFIX;
 
-    const res  = await fetch(`${API}/search?q=${encodeURIComponent(musicQ)}&limit=20`);
+    const res  = await apiFetch(`${API}/search?q=${encodeURIComponent(musicQ)}&limit=20`);
     const data = await res.json();
     let videos = (data.videos || []).filter(_isMusicResult);
 
@@ -337,7 +365,7 @@ async function doSearchMusic(origQ, musicQ, filterKey) {
   }
 
   try {
-    const res  = await fetch(`${API}/search?q=${encodeURIComponent(musicQ)}&limit=20`);
+    const res  = await apiFetch(`${API}/search?q=${encodeURIComponent(musicQ)}&limit=20`);
     const data = await res.json();
     renderMusicSearchResults(data.videos || [], origQ);
   } catch (e) {
@@ -454,7 +482,7 @@ function renderFilterBar(q) { renderMusicFilterBar(q); }
 async function fetchSuggestions(q) {
   if (!q) { hideSuggestions(); return; }
   try {
-    const res = await fetch(`${API}/suggest?q=${encodeURIComponent(q)}`);
+    const res = await apiFetch(`${API}/suggest?q=${encodeURIComponent(q)}`);
     const data = await res.json();
     const suggestions = Array.isArray(data) ? data : (data.suggestions || []);
     renderSuggestions(suggestions, q);
@@ -611,7 +639,11 @@ async function loadHomeFeed(reset = true) {
 
   try {
     const { q, label } = _nextFeedQuery();
-    const res  = await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=15`);
+    const res  = await apiFetch(`${API}/search?q=${encodeURIComponent(q)}&limit=15`);
+
+    // Jika server tidak merespons dengan benar
+    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
     const data = await res.json();
 
     const newVideos = (data.videos || []).filter(v => {
@@ -621,19 +653,14 @@ async function loadHomeFeed(reset = true) {
 
     _feedVideos = [..._feedVideos, ...newVideos];
     _feedPage++;
-    _feedHasMore = true; // selalu ada lebih banyak
+    _feedHasMore = true;
 
-    // Hapus sentinel lama
     document.getElementById('feedSentinel')?.remove();
-    // Hapus juga pull/refresh indicator yang mungkin tersisa
     document.querySelector('.pull-indicator')?.remove();
     document.querySelector('.refresh-indicator')?.remove();
 
-    if (reset) {
-      feed.innerHTML = '';
-    }
+    if (reset) feed.innerHTML = '';
 
-    // Tambahkan section label jika ada
     if (label && newVideos.length > 0) {
       const labelEl = document.createElement('div');
       labelEl.className = 'feed-section-label';
@@ -641,7 +668,6 @@ async function loadHomeFeed(reset = true) {
       feed.appendChild(labelEl);
     }
 
-    // Append video cards
     newVideos.forEach(v => {
       const div = document.createElement('div');
       div.innerHTML = videoCardHTML(v);
@@ -651,7 +677,6 @@ async function loadHomeFeed(reset = true) {
     if (_feedVideos.length === 0) {
       feed.innerHTML = `<div class="loading-state"><p>Tidak ada video. Coba refresh.</p><button class="not-found-btn" onclick="loadHomeFeed()">Refresh</button></div>`;
     } else {
-      // Sentinel minimal — tidak ada tinggi ekstra
       const sentinel = document.createElement('div');
       sentinel.id = 'feedSentinel';
       sentinel.style.cssText = 'height:1px;overflow:hidden;';
@@ -661,14 +686,26 @@ async function loadHomeFeed(reset = true) {
 
   } catch (e) {
     if (reset) {
+      // Cek apakah ini masalah koneksi ke backend
+      const isOffline = e.name === 'AbortError' || e.message.includes('fetch') || e.message.includes('Failed');
       feed.innerHTML = `
-        <div class="loading-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" width="48" height="48"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <p>Gagal memuat. Periksa koneksi server.</p>
+        <div class="loading-state" style="padding:40px 20px;text-align:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" width="56" height="56" style="margin-bottom:16px;">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p style="font-size:16px;font-weight:700;color:#0f0f0f;margin-bottom:8px;">
+            ${isOffline ? 'Server tidak tersedia' : 'Gagal memuat'}
+          </p>
+          <p style="font-size:13px;color:#606060;margin-bottom:20px;line-height:1.5;">
+            ${isOffline
+              ? 'Backend server belum berjalan.<br>Jalankan: <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">node muka_app/server.js</code>'
+              : 'Periksa koneksi internet kamu.'}
+          </p>
           <button class="not-found-btn" onclick="loadHomeFeed()">Coba Lagi</button>
         </div>`;
     } else {
-      // Retry otomatis setelah 3 detik
       setTimeout(() => { _feedLoading = false; loadHomeFeed(false); }, 3000);
     }
   } finally {
@@ -888,7 +925,7 @@ async function loadMusicPage() {
 
   const fetchSection = async (q, limit = 12) => {
     try {
-      const res  = await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+      const res  = await apiFetch(`${API}/search?q=${encodeURIComponent(q)}&limit=${limit}`);
       const data = await res.json();
       return (data.videos || []).slice(0, limit);
     } catch { return []; }
@@ -1044,7 +1081,7 @@ async function loadFileList() {
   myFiles = lsGetFiles();
   // Sinkronisasi dengan server juga (jika ada)
   try {
-    const res  = await fetch(`${API}/files`);
+    const res  = await apiFetch(`${API}/files`);
     const data = await res.json();
     if (data.files && data.files.length > 0) {
       // Merge: server files yang belum ada di localStorage
@@ -1171,7 +1208,7 @@ async function openDownloadModal(id, title, thumb) {
 
   // Fetch format list dari server
   try {
-    const res  = await fetch(`${API}/formats?id=${encodeURIComponent(id)}`);
+    const res  = await apiFetch(`${API}/formats?id=${encodeURIComponent(id)}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     renderFormatList(data);
@@ -1460,7 +1497,7 @@ async function openVideo(videoId, videoData) {
 
   // Load full info dari API
   try {
-    const res  = await fetch(`${API}/info?id=${encodeURIComponent(videoId)}`);
+    const res  = await apiFetch(`${API}/info?id=${encodeURIComponent(videoId)}`);
     const info = await res.json();
     if (!info.error) {
       currentVideo = { ...currentVideo, ...info };
@@ -1553,7 +1590,7 @@ async function loadRelatedVideos(query) {
   relatedEl.innerHTML = `<div class="related-loading"><div class="spinner"></div><span>Memuat video terkait...</span></div>`;
   try {
     const q   = typeof query === 'string' && query.length > 3 ? query.substring(0, 60) : 'musik indonesia terbaru';
-    const res = await fetch(`${API}/search?q=${encodeURIComponent(q)}&limit=12`);
+    const res = await apiFetch(`${API}/search?q=${encodeURIComponent(q)}&limit=12`);
     const data = await res.json();
     const list = (data.videos || []).filter(v => (v.id||v.videoId) !== currentVideo?.id).slice(0, 12);
     if (!list.length) {
@@ -1772,7 +1809,7 @@ async function deleteFile(index) {
   myFiles = lsGetFiles();
   // Hapus dari server juga (best effort)
   if (f.filename) {
-    try { await fetch(`${API}/delete-file?filename=${encodeURIComponent(f.filename)}`); } catch {}
+    try { await apiFetch(`${API}/delete-file?filename=${encodeURIComponent(f.filename)}`); } catch {}
   }
   renderFileList();
   showToast(`🗑️ "${(f.title||'file').substring(0,30)}" dihapus`);
@@ -1785,7 +1822,7 @@ async function confirmDeleteAll() {
   // Hapus dari server (best effort)
   for (const f of myFiles) {
     if (f.filename) {
-      try { await fetch(`${API}/delete-file?filename=${encodeURIComponent(f.filename)}`); } catch {}
+      try { await apiFetch(`${API}/delete-file?filename=${encodeURIComponent(f.filename)}`); } catch {}
     }
   }
   lsDeleteAll();
